@@ -1,0 +1,22 @@
+apiVersion: kmm.sigs.x-k8s.io/v1beta1
+kind: Module
+metadata:
+  name: kmm-ci-a
+spec:
+  moduleLoader:
+    container:
+      modprobe:
+        moduleName: kmm-ci-a 
+
+      kernelMappings:
+        - regexp: '^.+.generic$'
+          containerImage: myimage.registry/kmmo-lab:1.0 
+          build:
+            dockerfileConfigMap: 
+              name: build-module
+
+  imageRepoSecret:
+    name: my-repo-secret
+
+  selector:  
+    kubernetes.io/hostname: worker2
