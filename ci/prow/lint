@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+# Generate code and compare with the current source.
+# Fail with a diff if some files are outdated.
+go install go.uber.org/mock/mockgen@v0.2.0
+PATH="${PATH}:${GOPATH}/bin" make generate
+
+if ! git diff --exit-code; then
+    echo "Changes detected"
+    exit 1
+fi
+
+make lint
