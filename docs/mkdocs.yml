@@ -1,0 +1,47 @@
+---
+site_name: Kernel Module Management
+repo_url: https://github.com/kubernetes-sigs/kernel-module-management
+edit_uri: edit/main/docs/mkdocs
+site_description: Kernel Module Management (KMM) is a Kubernetes operator that manages, builds, signs and deploys out-of-tree kernel modules and device plugins on Kubernetes clusters.
+site_url: https://kmm.sigs.k8s.io/
+
+docs_dir: mkdocs
+strict: true
+
+nav:
+  - index.md
+  - Documentation:
+      - documentation/install.md
+      - documentation/configure.md
+      - documentation/deploy_kmod.md
+      - documentation/kmod_image.md
+      - Binary firmwares: documentation/firmwares.md
+      - Secure boot: documentation/secure_boot.md
+      - Preflight validation: documentation/preflight_validation.md
+      - Ordered upgrade: documentation/ordered_upgrade.md
+      - documentation/hub_spoke.md
+      - documentation/troubleshooting.md
+      - documentation/uninstall.md
+  - Lab: lab/index.md
+  - Developer:
+      - developer/index.md
+      - developer/use_cases.md
+      - developer/reconciliation_loops.md
+
+plugins:
+  - exclude:
+      glob:
+        - developer/diagrams/*.puml
+        - developer/Makefile
+
+markdown_extensions:
+  - admonition
+
+theme:
+  name: readthedocs
+  custom_dir: overrides/
+  highlightjs: true
+  hljs_languages:
+    - dockerfile
+    - shell
+    - yaml
