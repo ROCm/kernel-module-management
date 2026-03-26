@@ -29,22 +29,22 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # gcr.io/k8s-staging-kmm/kernel-module-management-bundle:$VERSION and gcr.io/k8s-staging-kmm/kernel-module-management-catalog:$VERSION.
-IMAGE_TAG_BASE ?= docker.io/kernel-module-management-operator
+IMAGE_TAG_BASE ?= docker.io/rocm/kernel-module-management-operator
 
 # This is the default tag of all images made by this Makefile.
 IMAGE_TAG ?= dev
 
-SIGNER_IMAGE_TAG_BASE ?= docker.io/kernel-module-management-signimage
+SIGNER_IMAGE_TAG_BASE ?= docker.io/rocm/kernel-module-management-signimage
 SIGNER_IMG ?= $(SIGNER_IMAGE_TAG_BASE):$(IMAGE_TAG)
 
-WEBHOOK_IMAGE_TAG_BASE ?= docker.io/kernel-module-management-webhook-server
+WEBHOOK_IMAGE_TAG_BASE ?= docker.io/rocm/kernel-module-management-webhook-server
 WEBHOOK_IMG ?= $(WEBHOOK_IMAGE_TAG_BASE):$(IMAGE_TAG)
 
-WORKER_IMAGE_TAG_BASE ?= docker.io/kernel-module-management-worker
+WORKER_IMAGE_TAG_BASE ?= docker.io/rocm/kernel-module-management-worker
 WORKER_IMG ?= $(WORKER_IMAGE_TAG_BASE):$(IMAGE_TAG)
 
 # CICD test image
-TEST_CONTAINER_URL ?= docker.io/pensando/kmm
+TEST_CONTAINER_URL ?= docker.io/rocm/kernel-module-management-operator
 TEST_CONTAINER_VERSION ?=1.1
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
@@ -137,6 +137,10 @@ lint: golangci-lint ## Run golangci-lint against code.
 		exit 1; \
 	fi
 	$(GOLANGCI_LINT) run -v --timeout 10m
+
+.PHONY: copyrights
+copyrights: ## Add copyright headers to Go files and check for uncommitted changes.
+	GOFLAGS=-mod=mod go run tools/build/copyright/main.go && $(MAKE) fmt && ./tools/build/check-local-files.sh
 
 ##@ Build
 
@@ -390,9 +394,6 @@ workerimage-save: ## Push docker image for the worker.
 
 operatorhub-release:
 	IMG=$(IMG) HUB_IMG=$(HUB_IMG) WORKER_IMG=$(WORKER_IMG) SIGNER_IMG=$(SIGNER_IMG) VERSION=$(VERSION) ./hack/release-operatorhub
-
-docker/install_box:
-	@if [ ! -x /usr/local/bin/box ]; then echo "Installing box, sudo is required"; curl -sSL pm.test.pensando.io/tools/box-builder/install.sh | sudo bash; fi
 
 docker/build-test-container: docker/install_box
 	BOX_INCLUDE_ENV="FLATTEN" FLATTEN=1 box -n -t '${TEST_CONTAINER_URL}:${TEST_CONTAINER_VERSION}' box-deps.rb
