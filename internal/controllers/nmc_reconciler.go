@@ -983,7 +983,7 @@ var (
 	}
 	limits = v1.ResourceList{
 		v1.ResourceCPU:    resource.MustParse("1"),
-		v1.ResourceMemory: resource.MustParse("256Mi"),
+		v1.ResourceMemory: resource.MustParse("1Gi"),
 	}
 )
 
