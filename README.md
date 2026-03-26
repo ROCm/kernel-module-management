@@ -1,43 +1,98 @@
 # Kernel Module Management
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes-sigs/kernel-module-management)](https://goreportcard.com/report/github.com/kubernetes-sigs/kernel-module-management)
-[![Go Reference](https://pkg.go.dev/badge/github.com/kubernetes-sigs/kernel-module-management.svg)](https://pkg.go.dev/github.com/kubernetes-sigs/kernel-module-management)
-
 The Kernel Module Management Operator manages out of tree kernel modules in Kubernetes.
 
+> **Note**: This is a downstream fork of the upstream [kubernetes-sigs/kernel-module-management](https://github.com/kubernetes-sigs/kernel-module-management) repository. This fork contains AMD ROCm-specific modifications and enhancements.
+
 ## Getting started
-Install the bleeding edge Kernel Module Management Operator in one command:
 
-First install [cert-manager](https://github.com/cert-manager/cert-manager) which is a dependency.
+For installation and usage instructions, please refer to the [AMD GPU Operator for AMD Instinct documentation](https://rocm.docs.amd.com/projects/gpu-operator/en/latest/).
+
+## Building Images
+
+This project uses Make to build container images. Below are the available build targets:
+
+### Building the Operator Images
+
+Build the main KMM operator image:
+
 ```shell
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
-kubectl -n cert-manager wait --for=condition=Available deployment \
-	cert-manager \
-	cert-manager-cainjector \
-	cert-manager-webhook
+make docker-build
 ```
 
-Install KMM.
+This creates the image `docker.io/rocm/kernel-module-management-operator:dev`
+
+Build the hub manager image:
+
 ```shell
-kubectl apply -k https://github.com/kubernetes-sigs/kernel-module-management/config/default
+make docker-build-hub
 ```
 
-## Documentation and lab
+This creates the image `docker.io/rocm/kernel-module-management-operator-hub:dev`
 
-You can find examples and labs on the [documentation website](https://kmm.sigs.k8s.io).
+### Building Component Images
 
-## Community, discussion, contribution, and support
+Build the signer image:
 
-Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
+```shell
+make signimage-build
+```
 
-You can reach the maintainers of this project at:
+This creates the image `docker.io/rocm/kernel-module-management-signimage:dev`
 
-- [Slack](http://slack.k8s.io/)
-- [Mailing List](https://groups.google.com/forum/#!forum/kubernetes-dev)
+Build the webhook server image:
 
-### Code of conduct
+```shell
+make webhookimage-build
+```
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+This creates the image `docker.io/rocm/kernel-module-management-webhook-server:dev`
 
-[owners]: https://git.k8s.io/community/contributors/guide/owners.md
-[Creative Commons 4.0]: https://git.k8s.io/website/LICENSE
+Build the worker image:
+
+```shell
+make workerimage-build
+```
+
+This creates the image `docker.io/rocm/kernel-module-management-worker:dev`
+
+### Building All Images
+
+To build all images at once:
+
+```shell
+make docker-build docker-build-hub signimage-build webhookimage-build workerimage-build
+```
+
+### Customizing Image Tags
+
+You can customize the image tag and registry by setting environment variables:
+
+```shell
+# Set custom image tag
+export IMAGE_TAG=v1.0.0
+make docker-build
+
+# Set custom registry
+export IMAGE_TAG_BASE=my-registry.com/kmm-operator
+make docker-build
+```
+
+### Saving Images
+
+You can save built images to tar.gz files for offline distribution:
+
+```shell
+make docker-save           # Saves operator image
+make signimage-save        # Saves signer image
+make webhookimage-save     # Saves webhook server image
+make workerimage-save      # Saves worker image
+```
+
+### Building OLM Bundle
+
+Build the Operator Lifecycle Manager (OLM) bundle:
+
+```shell
+make bundle-build
+```
