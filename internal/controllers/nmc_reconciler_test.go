@@ -1,3 +1,19 @@
+/*
+Copyright (c) Advanced Micro Devices, Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the \"License\");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an \"AS IS\" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
@@ -52,6 +68,7 @@ var _ = Describe("NodeModulesConfigReconciler_Reconcile", func() {
 	var (
 		kubeClient *testclient.MockClient
 		wh         *MocknmcReconcilerHelper
+		nm         *node.MockNode
 
 		r *NMCReconciler
 
@@ -64,9 +81,11 @@ var _ = Describe("NodeModulesConfigReconciler_Reconcile", func() {
 		ctrl := gomock.NewController(GinkgoT())
 		kubeClient = testclient.NewMockClient(ctrl)
 		wh = NewMocknmcReconcilerHelper(ctrl)
+		nm = node.NewMockNode(ctrl)
 		r = &NMCReconciler{
-			client: kubeClient,
-			helper: wh,
+			client:  kubeClient,
+			helper:  wh,
+			nodeAPI: nm,
 		}
 	})
 
@@ -160,14 +179,14 @@ var _ = Describe("NodeModulesConfigReconciler_Reconcile", func() {
 				Do(func(_ context.Context, _ types.NamespacedName, kubeNmc ctrlclient.Object, _ ...ctrlclient.Options) {
 					*kubeNmc.(*kmmv1beta1.NodeModulesConfig) = *nmc
 				}),
-			wh.EXPECT().SyncStatus(ctx, nmc),
 			kubeClient.EXPECT().Get(ctx, types.NamespacedName{Name: nmc.Name}, &v1.Node{}).DoAndReturn(
 				func(_ context.Context, _ types.NamespacedName, fetchedNode *v1.Node, _ ...ctrlclient.Options) error {
 					*fetchedNode = node
 					return nil
 				},
 			),
-			nm.EXPECT().IsNodeSchedulable(&node).Return(false),
+			wh.EXPECT().SyncStatus(ctx, nmc, &node),
+			nm.EXPECT().IsNodeSchedulable(&node, nil).Return(false),
 			nm.EXPECT().UpdateLabels(ctx, &node, nil, []string{kmodName}).DoAndReturn(
 				func(_ context.Context, obj ctrlclient.Object, _, _ []string) error {
 					return fmt.Errorf("some error")
@@ -243,7 +262,9 @@ var _ = Describe("NodeModulesConfigReconciler_Reconcile", func() {
 				}),
 			kubeClient.EXPECT().Get(ctx, types.NamespacedName{Name: nmc.Name}, &node).Return(nil),
 			wh.EXPECT().SyncStatus(ctx, nmc, &node),
+			nm.EXPECT().IsNodeSchedulable(&node, nil).Return(true),
 			wh.EXPECT().ProcessModuleSpec(contextWithValueMatch, nmc, &spec0, &status0, &node),
+			nm.EXPECT().IsNodeSchedulable(&node, nil).Return(true),
 			wh.EXPECT().ProcessModuleSpec(contextWithValueMatch, nmc, &spec1, nil, &node),
 			wh.EXPECT().ProcessUnconfiguredModuleStatus(contextWithValueMatch, nmc, &status2, &node),
 			wh.EXPECT().GarbageCollectInUseLabels(ctx, nmc),
@@ -321,6 +342,7 @@ var _ = Describe("NodeModulesConfigReconciler_Reconcile", func() {
 				}),
 			kubeClient.EXPECT().Get(ctx, types.NamespacedName{Name: nmc.Name}, &node).Return(nil),
 			wh.EXPECT().SyncStatus(ctx, nmc, &node),
+			nm.EXPECT().IsNodeSchedulable(&node, nil).Return(true),
 			wh.EXPECT().ProcessModuleSpec(contextWithValueMatch, nmc, &spec0, &status0, &node).Return(fmt.Errorf(errorMeassge)),
 			wh.EXPECT().ProcessUnconfiguredModuleStatus(contextWithValueMatch, nmc, &status2, &node).Return(fmt.Errorf(errorMeassge)),
 			wh.EXPECT().GarbageCollectInUseLabels(ctx, nmc).Return(fmt.Errorf(errorMeassge)),
@@ -1133,6 +1155,7 @@ var _ = Describe("nmcReconcilerHelperImpl_SyncStatus", func() {
 				Name:               modName,
 				Namespace:          modNamespace,
 				ServiceAccountName: serviceAccountName,
+				Tolerations:        []v1.Toleration{testToleration},
 			},
 			Config:             cfg,
 			LastTransitionTime: now,
@@ -1766,6 +1789,7 @@ var _ = Describe("podManagerImpl_CreateLoaderPod", func() {
 			if withFirmwareLoading && firmwareHostPath != nil {
 				container.SecurityContext = &v1.SecurityContext{
 					Privileged: ptr.To(true),
+					RunAsUser:  workerCfg.RunAsUser,
 				}
 			} else {
 				container.SecurityContext = &v1.SecurityContext{
@@ -2209,6 +2233,40 @@ cp -R /firmware-path/* /tmp/firmware-path;
 		}
 		pod.Spec.Volumes = append(pod.Spec.Volumes, fwVol)
 
+		// Add sys-path volume and mount
+		sysPathVolMount := v1.VolumeMount{
+			Name:      "sys-path",
+			MountPath: "/sys",
+		}
+		pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, sysPathVolMount)
+		hostPathFile := v1.HostPathFile
+		sysPathVol := v1.Volume{
+			Name: "sys-path",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: "/sys",
+					Type: &hostPathDirectory,
+				},
+			},
+		}
+		pod.Spec.Volumes = append(pod.Spec.Volumes, sysPathVol)
+
+		// Add firmware-search-path volume and mount
+		firmwareSearchPathVolMount := v1.VolumeMount{
+			Name:      "firmware-search-path",
+			MountPath: "/sys/module/firmware_class/parameters/path",
+		}
+		pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, firmwareSearchPathVolMount)
+		firmwareSearchPathVol := v1.Volume{
+			Name: "firmware-search-path",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: "/sys/module/firmware_class/parameters/path",
+					Type: &hostPathFile,
+				},
+			},
+		}
+		pod.Spec.Volumes = append(pod.Spec.Volumes, firmwareSearchPathVol)
 	}
 
 	if imagePullSecret != nil {
