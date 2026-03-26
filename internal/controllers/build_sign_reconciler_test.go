@@ -1,3 +1,19 @@
+/*
+Copyright (c) Advanced Micro Devices, Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the \"License\");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an \"AS IS\" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
@@ -55,10 +71,10 @@ var _ = Describe("BuildSignReconciler_Reconcile", func() {
 		mappings := map[string]*api.ModuleLoaderData{"kernelVersion": &api.ModuleLoaderData{}}
 		returnedError := fmt.Errorf("some error")
 		if getNodesError {
-			mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector).Return(nil, returnedError)
+			mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector, false).Return(nil, returnedError)
 			goto executeTestFunction
 		}
-		mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector).Return(selectNodesList, nil)
+		mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector, false).Return(selectNodesList, nil)
 		if getMappingsError {
 			mockReconHelper.EXPECT().getRelevantKernelMappings(ctx, &mod, selectNodesList).Return(nil, returnedError)
 			goto executeTestFunction
@@ -93,7 +109,7 @@ var _ = Describe("BuildSignReconciler_Reconcile", func() {
 		selectNodesList := []v1.Node{v1.Node{}}
 		mappings := map[string]*api.ModuleLoaderData{"kernelVersion": &api.ModuleLoaderData{}}
 		gomock.InOrder(
-			mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector).Return(selectNodesList, nil),
+			mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector, false).Return(selectNodesList, nil),
 			mockReconHelper.EXPECT().getRelevantKernelMappings(ctx, mod, selectNodesList).Return(mappings, nil),
 			mockReconHelper.EXPECT().handleBuild(ctx, mappings["kernelVersion"]).Return(false, nil),
 			mockReconHelper.EXPECT().garbageCollect(ctx, mod, mappings).Return(nil),
@@ -109,7 +125,7 @@ var _ = Describe("BuildSignReconciler_Reconcile", func() {
 		selectNodesList := []v1.Node{v1.Node{}}
 		mappings := map[string]*api.ModuleLoaderData{"kernelVersion": &api.ModuleLoaderData{}}
 		gomock.InOrder(
-			mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector).Return(selectNodesList, nil),
+			mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector, false).Return(selectNodesList, nil),
 			mockReconHelper.EXPECT().getRelevantKernelMappings(ctx, mod, selectNodesList).Return(mappings, nil),
 			mockReconHelper.EXPECT().handleBuild(ctx, mappings["kernelVersion"]).Return(true, nil),
 			mockReconHelper.EXPECT().handleSigning(ctx, mappings["kernelVersion"]).Return(false, nil),
@@ -127,7 +143,7 @@ var _ = Describe("BuildSignReconciler_Reconcile", func() {
 		selectNodesList := []v1.Node{v1.Node{}}
 		mappings := map[string]*api.ModuleLoaderData{"kernelVersion": &api.ModuleLoaderData{}}
 		gomock.InOrder(
-			mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector).Return(selectNodesList, nil),
+			mn.EXPECT().GetNodesListBySelector(ctx, mod.Spec.Selector, false).Return(selectNodesList, nil),
 			mockReconHelper.EXPECT().getRelevantKernelMappings(ctx, mod, selectNodesList).Return(mappings, nil),
 			mockReconHelper.EXPECT().handleBuild(ctx, mappings["kernelVersion"]).Return(true, nil),
 			mockReconHelper.EXPECT().handleSigning(ctx, mappings["kernelVersion"]).Return(true, nil),
