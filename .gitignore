@@ -10,9 +10,6 @@ asset-build/
 # Container entrypoint script
 entrypoint.sh
 
-# Dockerfiles (anywhere in the tree)
-Dockerfile
-Dockerfile.*
 # Exception: this is a Go template owned by internal/sign/pod, not a real Dockerfile.
 !internal/sign/pod/templates/Dockerfile.gotmpl
 
