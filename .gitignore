@@ -1,0 +1,28 @@
+# Files that must never be synced from upstream.
+
+# Vagrant / dev-box descriptors
+box.rb
+box-deps.rb
+
+# Asset build tree
+asset-build/
+
+# Container entrypoint script
+entrypoint.sh
+
+# Exception: this is a Go template owned by internal/sign/pod, not a real Dockerfile.
+!internal/sign/pod/templates/Dockerfile.gotmpl
+
+# CI job descriptors (any directory)
+.job.yml
+**/.job.yml
+branch_policy.yml
+
+# OWNERS file (root only)
+/OWNERS
+
+# DevOps tree
+devops/
+
+# Local editor/tooling state
+.cline_storage/

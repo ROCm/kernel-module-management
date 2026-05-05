@@ -387,7 +387,7 @@ func (h *nmcReconcilerHelperImpl) ProcessModuleSpec(
 		// if there already exists unloader but the status kernel version already differs from spec,
 		// the unloader won't work anymore because the worker node kernel has changed
 		// now delete the unloader pod and create the new loader pod
-		if !reflect.DeepEqual(spec.Config, status.Config) &&
+		if status != nil && !reflect.DeepEqual(spec.Config, status.Config) &&
 			spec.Config.KernelVersion != status.Config.KernelVersion {
 			logger.Info("node has been rebooted and become ready after kernel module was loaded; unloader pod already exists; deleting unloader pod and creating loader Pod")
 			if err := h.pm.DeletePod(ctx, pod); err != nil {
