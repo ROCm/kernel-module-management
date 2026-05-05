@@ -1,0 +1,13 @@
+# CODEOWNERS for ROCm Kernel Module Management
+#
+# These owners will be the default owners for everything in the repository.
+# They will be requested for review when someone opens a pull request.
+# See https://docs.github.com/articles/about-code-owners for syntax.
+#
+# Owner contacts:
+#   @yansun1996        - Yan.Sun3@amd.com
+#   @sajmera-pensando  - Shrey.Ajmera@amd.com
+#   @sundar-pds        - Sundaramurthy.Gurunathan@amd.com
+#   @spraveenio        - Praveenkumar.Shanmugam@amd.com
+
+* @yansun1996 @sajmera-pensando @sundar-pds @spraveenio
