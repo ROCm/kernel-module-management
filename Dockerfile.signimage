@@ -1,4 +1,4 @@
-FROM docker.io/alpine:3.20 as ksource
+FROM docker.io/alpine:3.20 AS ksource
 
 RUN ["apk", "add", "linux-virt-dev"]
 
