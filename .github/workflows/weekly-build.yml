@@ -1,0 +1,87 @@
+name: Weekly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-build
+  cancel-in-progress: false
+
+jobs:
+  check-commits:
+    name: Check for new commits
+    runs-on: ubuntu-24.04
+    outputs:
+      has_new_commits: ${{ steps.check.outputs.has_new_commits }}
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Check for new commits since last successful run
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Always build on manual trigger
+            if (context.eventName === 'workflow_dispatch') {
+              core.setOutput('has_new_commits', 'true');
+              return;
+            }
+
+            // Get the last successful run of this workflow
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: context.workflow,
+              status: 'success',
+              per_page: 1,
+            });
+
+            if (runs.data.total_count === 0) {
+              // No prior successful run — always build
+              core.setOutput('has_new_commits', 'true');
+              return;
+            }
+
+            const lastRunDate = runs.data.workflow_runs[0].run_started_at;
+
+            // Check for commits on the default branch since the last successful run
+            const commits = await github.rest.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              since: lastRunDate,
+              per_page: 1,
+            });
+
+            const hasNewCommits = commits.data.length > 0;
+            core.setOutput('has_new_commits', hasNewCommits.toString());
+            console.log(`Last successful run: ${lastRunDate}`);
+            console.log(`New commits found: ${hasNewCommits}`);
+
+  build:
+    name: Build
+    needs: check-commits
+    if: needs.check-commits.outputs.has_new_commits == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build
+        run: |
+          make manager docker-build \
+            webhook-server webhookimage-build \
+            worker workerimage-build \
+            manager-hub signimage-build
