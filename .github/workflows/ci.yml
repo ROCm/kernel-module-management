@@ -1,0 +1,32 @@
+name: CI - Build Images
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release-*
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: operator
+            target: docker-build
+          - name: operator-hub
+            target: docker-build-hub
+          - name: signimage
+            target: signimage-build
+          - name: webhook
+            target: webhookimage-build
+          - name: worker
+            target: workerimage-build
+    name: build (${{ matrix.name }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build ${{ matrix.name }}
+        run: make ${{ matrix.target }}
