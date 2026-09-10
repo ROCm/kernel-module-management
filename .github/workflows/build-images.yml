@@ -1,0 +1,35 @@
+name: Build Images
+
+on:
+  workflow_call:
+    inputs:
+      push_tag:
+        required: true
+        type: string
+        description: 'Image tag for build (e.g. v0.0.1-20260910)'
+
+jobs:
+  build:
+    name: Build container images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build all KMM images
+        env:
+          IMAGE_TAG: ${{ inputs.push_tag }}
+          VERSION: ${{ inputs.push_tag }}
+        run: .github/scripts/build-images.sh
+
+      - name: Upload image artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-images-${{ inputs.push_tag }}
+          retention-days: 1
+          path: |
+            kernel-module-management-operator.tar.gz
+            kernel-module-management-signimage.tar.gz
+            kernel-module-management-webhook-server.tar.gz
+            kernel-module-management-worker.tar.gz
