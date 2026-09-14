@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+#
+# Verify that every Go version referenced by a Dockerfile agrees with the
+# `go` directive in go.mod.
+#
+# A Go-version bump has to touch go.mod *and* every Dockerfile that pulls a
+# `golang:` base image. Missing one leaves the builder older than go.mod
+# requires and, because the golang base images ship GOTOOLCHAIN=local, the
+# build fails late with:
+#
+#   go: go.mod requires go >= X.Y.Z (running A.B.C; GOTOOLCHAIN=local)
+#
+# This catches that mismatch in a second, before anything is compiled.
+#
+# Usage: make verify-go-versions   (or ./hack/verify-go-versions)
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+expected="$(awk '$1 == "go" { print $2; exit }' go.mod)"
+if [[ -z "${expected}" ]]; then
+    echo "verify-go-versions: could not read the 'go' directive from go.mod" >&2
+    exit 1
+fi
+
+echo "go.mod requires Go ${expected}"
+
+rc=0
+found=0
+
+# Only Dockerfiles are in scope. cloudbuild.yaml also contains a golang: tag,
+# but it belongs to the legacy GCR build path and is not kept in step with
+# go.mod -- checking it would be a guaranteed false positive.
+#
+# Dockerfile.signimage needs no special case: it pulls no golang: image, so it
+# simply never matches.
+for dockerfile in Dockerfile*; do
+    [[ -f "${dockerfile}" ]] || continue
+
+    # -o so a multi-stage Dockerfile referencing the base image more than once
+    # is reported per occurrence. The pattern stops at the numeric version, so
+    # both `golang:1.26.5` and `golang:1.26.5-alpine3.24` yield `1.26.5`.
+    while IFS=: read -r lineno version; do
+        found=$((found + 1))
+        if [[ "${version}" == "${expected}" ]]; then
+            printf '  ok     %-32s line %-4s golang:%s\n' "${dockerfile}" "${lineno}" "${version}"
+        else
+            printf '  WRONG  %-32s line %-4s golang:%s (expected %s)\n' \
+                "${dockerfile}" "${lineno}" "${version}" "${expected}"
+            rc=1
+        fi
+    done < <(grep -noE 'golang:[0-9]+(\.[0-9]+)*' "${dockerfile}" \
+             | sed -E 's/^([0-9]+):golang:(.*)$/\1:\2/')
+done
+
+if [[ "${found}" -eq 0 ]]; then
+    echo "verify-go-versions: no golang: reference found in any Dockerfile --" >&2
+    echo "refusing to pass vacuously; has the base image moved?" >&2
+    exit 1
+fi
+
+if [[ "${rc}" -ne 0 ]]; then
+    echo
+    echo "Go version mismatch. Every Dockerfile above must use Go ${expected} to"
+    echo "match go.mod, or the go directive in go.mod must be corrected."
+fi
+
+exit "${rc}"
