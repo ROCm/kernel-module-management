@@ -138,9 +138,11 @@ lint: golangci-lint ## Run golangci-lint against code.
 	fi
 	$(GOLANGCI_LINT) run -v --timeout 10m
 
-.PHONY: copyrights
-copyrights: ## Add copyright headers to Go files and check for uncommitted changes.
-	GOFLAGS=-mod=mod go run tools/build/copyright/main.go && $(MAKE) fmt && ./tools/build/check-local-files.sh
+##@ Verification
+
+.PHONY: verify-go-versions
+verify-go-versions: ## Check every Dockerfile's golang base image matches go.mod.
+	./hack/verify-go-versions
 
 ##@ Build
 
@@ -163,6 +165,12 @@ run: manifests generate fmt vet ## Run a controller from your host.
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
 	docker build -t $(IMG) --build-arg TARGET=manager --label HOURLY_TAG=$(VERSION) .
+
+# A Go version bump touches every Dockerfile, but `docker-build` compiles only
+# the manager. This builds the full product image set so a bump that breaks the
+# webhook, worker or signer image is caught before it ships.
+.PHONY: docker-build-all
+docker-build-all: docker-build webhookimage-build workerimage-build signimage-build ## Build all product container images.
 
 .PHONY: docker-save
 docker-save: 
@@ -394,6 +402,9 @@ workerimage-save: ## Push docker image for the worker.
 
 operatorhub-release:
 	IMG=$(IMG) HUB_IMG=$(HUB_IMG) WORKER_IMG=$(WORKER_IMG) SIGNER_IMG=$(SIGNER_IMG) VERSION=$(VERSION) ./hack/release-operatorhub
+
+docker/install_box:
+	@if [ ! -x /usr/local/bin/box ]; then echo "Installing box, sudo is required"; curl -sSL pm.test.pensando.io/tools/box-builder/install.sh | sudo bash; fi
 
 docker/build-test-container: docker/install_box
 	BOX_INCLUDE_ENV="FLATTEN" FLATTEN=1 box -n -t '${TEST_CONTAINER_URL}:${TEST_CONTAINER_VERSION}' box-deps.rb
