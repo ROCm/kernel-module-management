@@ -1,0 +1,30 @@
+# Copyright Advanced Micro Devices, Inc.
+# SPDX-License-Identifier: MIT
+#
+# Trivy misconfiguration suppressions for this repository.
+# Local scan: trivy fs --severity HIGH,CRITICAL --scanners misconfig,vuln \
+#   --config .github/scan_tools_configs/trivy.yml --ignorefile .trivyignore .
+#
+# .trivyignore entries are matched by AVD ID repo-wide (not path-scoped);
+# trivy's path-scoped .trivyignore.yaml is not yet wired into the shared
+# ROCm/rocm-security-gh workflow this repo uses, so each entry below lists
+# every affected manifest in its comment rather than being auto-scoped.
+
+# KSV-0041 (CRITICAL): ClusterRole 'manager-role' shouldn't manage 'secrets'.
+# Covers config/rbac/role.yaml and config/rbac-hub/role.yaml. The operator
+# needs cluster-wide secret access to read pull secrets referenced by Module
+# specs across namespaces; narrowing this is a real RBAC redesign (functional
+# change), tracked as a follow-up rather than done here.
+AVD-KSV-0041
+
+# KSV-0014 (HIGH): Container should set securityContext.readOnlyRootFilesystem.
+# Covers the manager and webhook-server Deployments (config/manager-base/
+# manager.yaml, config/manager-base/manager_config_patch.yaml,
+# config/manager/manager_worker_image_patch.yaml,
+# config/webhook-server/deployment.yaml). Setting this requires auditing
+# every write path in those binaries first; functional change, follow-up.
+AVD-KSV-0014
+
+# KSV-0118 (HIGH): Container/deployment is using the default security context.
+# Same Deployments as AVD-KSV-0014 above; follows from the same follow-up.
+AVD-KSV-0118
