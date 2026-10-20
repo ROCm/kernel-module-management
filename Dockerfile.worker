@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM docker.io/golang:1.26.7-alpine3.24 AS builder
+FROM docker.io/golang:1.26.9-alpine3.24 AS builder
 
 RUN ["apk", "add", "bash", "make"]
 
@@ -28,7 +28,7 @@ COPY .git .git
 # Build
 RUN ["make", "worker"]
 
-FROM docker.io/alpine:3.20.10
+FROM docker.io/alpine:3.24.2
 
 RUN ["apk", "add", "ca-certificates", "kmod"]
 

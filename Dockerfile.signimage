@@ -1,8 +1,8 @@
-FROM docker.io/alpine:3.20.10 AS ksource
+FROM docker.io/alpine:3.24.2 AS ksource
 
 RUN ["apk", "add", "linux-virt-dev"]
 
-FROM docker.io/alpine:3.20.10
+FROM docker.io/alpine:3.24.2
 
 COPY --from=ksource /usr/src/linux-headers-*-virt/scripts/sign-file /usr/local/bin/sign-file
 
