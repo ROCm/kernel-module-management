@@ -36,3 +36,16 @@ scan:
     - dist
     - node_modules
     - __pycache__
+  skip-files:
+    # Vendored third-party source, not code we author or ship.
+    - vendor/go.opentelemetry.io/otel/dependencies.Dockerfile
+    # Vendored Go test fixture (a sample Pod spec used in unit tests), not a
+    # deployed manifest.
+    - vendor/k8s.io/apimachinery/pkg/util/managedfields/pod.yaml
+    # Internal CI/dev tooling image (mockgen, kubectl, oc, docker CLI); never
+    # shipped to users and needs root for package/tool installation.
+    - Dockerfile.kmm-operator-build
+    # sign-file image: runs as root by design to write signed kernel modules
+    # into host-mounted paths (DS-0002); also triggers DS-0025 on its single
+    # internal apk add.
+    - Dockerfile.signimage

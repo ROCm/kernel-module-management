@@ -38,4 +38,6 @@ ARG TARGET
 
 COPY --from=builder /workspace/${TARGET} /usr/local/bin/manager
 
+USER 65532:65532
+
 ENTRYPOINT ["/usr/local/bin/manager"]

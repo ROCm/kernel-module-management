@@ -34,4 +34,6 @@ WORKDIR /
 
 COPY --from=builder /workspace/webhook-server /usr/local/bin/webhook-server
 
+USER 65532:65532
+
 ENTRYPOINT ["/usr/local/bin/webhook-server"]
