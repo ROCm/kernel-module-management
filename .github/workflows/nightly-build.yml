@@ -35,7 +35,7 @@ jobs:
   resolve:
     name: Resolve
     needs: init
-    uses: ROCm/common-infra-operator/.github/workflows/nightly-resolve.yml@81618d2a300a5bf66483dce3816dc8dfbf47744b
+    uses: ROCm/common-infra-operator/.github/workflows/nightly-resolve.yml@545f080d2f35a3533cf07a0105814259cff08dc5
     with:
       component: kmm
       version: ${{ needs.init.outputs.project_version }}
@@ -58,7 +58,7 @@ jobs:
       always()
       && needs.resolve.outputs.build_needed == 'true'
       && needs.build-images.result == 'success'
-    uses: ROCm/common-infra-operator/.github/workflows/rocm-publish.yml@81618d2a300a5bf66483dce3816dc8dfbf47744b
+    uses: ROCm/common-infra-operator/.github/workflows/rocm-publish.yml@545f080d2f35a3533cf07a0105814259cff08dc5
     with:
       component: kmm
       image_tag: ${{ needs.resolve.outputs.push_tag }}
@@ -83,7 +83,7 @@ jobs:
     name: Validate
     needs: [resolve, publish]
     if: always() && needs.publish.result == 'success'
-    uses: ROCm/common-infra-operator/.github/workflows/rocm-orchestrator.yml@81618d2a300a5bf66483dce3816dc8dfbf47744b
+    uses: ROCm/common-infra-operator/.github/workflows/rocm-orchestrator.yml@545f080d2f35a3533cf07a0105814259cff08dc5
     with:
       component: kmm
       scenario: nightly
@@ -93,7 +93,7 @@ jobs:
     name: Summary
     needs: [resolve, build-images, publish, validate]
     if: always() && needs.resolve.outputs.build_needed == 'true'
-    uses: ROCm/common-infra-operator/.github/workflows/nightly-summary.yml@81618d2a300a5bf66483dce3816dc8dfbf47744b
+    uses: ROCm/common-infra-operator/.github/workflows/nightly-summary.yml@545f080d2f35a3533cf07a0105814259cff08dc5
     with:
       component: kmm
       push_tag: ${{ needs.resolve.outputs.push_tag }}
