@@ -11,8 +11,6 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write
-  actions: write
 
 jobs:
 
@@ -23,7 +21,9 @@ jobs:
       project_version: ${{ steps.version.outputs.project_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Read project version
         id: version
@@ -35,6 +35,9 @@ jobs:
   resolve:
     name: Resolve
     needs: init
+    permissions:
+      contents: read
+      actions: read
     uses: ROCm/common-infra-operator/.github/workflows/nightly-resolve.yml@c75e208af939ff294e9f96a5ea07ad04414b498f
     with:
       component: kmm
@@ -58,6 +61,10 @@ jobs:
       always()
       && needs.resolve.outputs.build_needed == 'true'
       && needs.build-images.result == 'success'
+    permissions:
+      contents: read
+      id-token: write
+      actions: write
     uses: ROCm/common-infra-operator/.github/workflows/rocm-publish.yml@c75e208af939ff294e9f96a5ea07ad04414b498f
     with:
       component: kmm
